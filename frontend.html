@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Instagram Follower Compare</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; padding: 20px; }
+        .container { max-width: 600px; margin: auto; }
+        textarea { 
+            width: 100%; height: 120px; margin-bottom: 10px; 
+            background: #222; color: #eee; border: 1px solid #444; border-radius: 5px; padding: 10px;
+            display: block; font-family: monospace;
+        }
+        .file-section { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
+        button { 
+            background: #e1306c; color: white; border: none; padding: 15px 20px; 
+            border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem;
+        }
+        button:hover { background: #c13584; }
+        .result-box { 
+            margin-top: 20px; padding: 15px; background: #1e1e1e; 
+            border-left: 5px solid #ff4d4d; white-space: pre-wrap; 
+        }
+        .mutual-style { border-left-color: #4daafc; }
+        h3 { margin-top: 0; margin-bottom: 5px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #4daafc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Instagram Follower Checker</h2>
+    
+    <div class="file-section">
+        <label>1. FOLLOWING (Paste or Upload following.html)</label>
+        <input type="file" accept=".html,.txt" onchange="loadFile(this, 'followingInput')">
+        <textarea id="followingInput" placeholder="Paste names or upload file..."></textarea>
+    </div>
+
+    <div class="file-section">
+        <label>2. FOLLOWERS (Paste or Upload followers.html)</label>
+        <input type="file" accept=".html,.txt" onchange="loadFile(this, 'followersInput')">
+        <textarea id="followersInput" placeholder="Paste names or upload file..."></textarea>
+    </div>
+
+    <button onclick="compareLists()">Run Comparison</button>
+
+    <div id="output"></div>
+</div>
+
+<script>
+function loadFile(input, targetId) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById(targetId).value = e.target.result;
+    };
+    reader.readAsText(file);
+}
+
+function extractUsernames(text) {
+    let names = [];
+    
+    // Pattern 1: Look for usernames in the /_u/ format (following.html)
+    const urlPattern1 = /\/_u\/([a-zA-Z0-9._]+)/g;
+    let match;
+    while ((match = urlPattern1.exec(text)) !== null) {
+        names.push(match[1]);
+    }
+
+    // Pattern 2: Look for usernames in standard instagram.com links (followers.html)
+    const urlPattern2 = /instagram\.com\/([a-zA-Z0-9._]+)(?=["']|\/|>)/g;
+    while ((match = urlPattern2.exec(text)) !== null) {
+        if (match[1] !== "_u") names.push(match[1]);
+    }
+
+    // Pattern 3: Look for names inside <h2> tags
+    const headerPattern = /<h2[^>]*>([^<]+)<\/h2>/g;
+    while ((match = headerPattern.exec(text)) !== null) {
+        names.push(match[1]);
+    }
+    
+    // FALLBACK: If no HTML patterns were found, treat it as a plain space/newline separated list
+    if (names.length === 0) {
+        names = text.split(/[\s,]+/).filter(n => n.length > 1);
+    }
+
+    // Clean up: Remove duplicates, trim, and lowercase everything
+    const uniqueNames = [...new Set(names)]
+        .map(n => n.toLowerCase().trim())
+        .filter(n => n.length > 0 && n !== "instagram" && n !== "user");
+
+    return uniqueNames;
+}
+
+function compareLists() {
+    const rawFollowing = document.getElementById('followingInput').value.trim();
+    const rawFollowers = document.getElementById('followersInput').value.trim();
+
+    if (!rawFollowing || !rawFollowers) {
+        alert("Please ensure both boxes have names or uploaded files!");
+        return;
+    }
+
+    const following = extractUsernames(rawFollowing);
+    const followers = extractUsernames(rawFollowers);
+    const followersSet = new Set(followers);
+
+    const notFollowingBack = following.filter(name => !followersSet.has(name));
+    const mutuals = following.filter(name => followersSet.has(name));
+
+    const outputDiv = document.getElementById('output');
+    outputDiv.innerHTML = `
+        <div class="result-box">
+            <h3 style="color: #ff4d4d;">--- NOT FOLLOWING BACK (${notFollowingBack.length}) ---</h3>
+            ${notFollowingBack.length > 0 ? notFollowingBack.join('<br>') : 'Everyone follows you back!'}
+        </div>
+
+        <div class="result-box mutual-style">
+            <h3 style="color: #4daafc;">--- MUTUALS (${mutuals.length}) ---</h3>
+            ${mutuals.length > 0 ? mutuals.join('<br>') : 'None'}
+        </div>
+    `;
+}
+</script>
+<script type="text/javascript">
+    aclib.runAutoTag({
+        zoneId: 'cvjvio0wos',
+    });
+</script>
+
+</body>
+</html>
